@@ -4,9 +4,11 @@ import { EmptyState, FormatValue, LoadingBlock, QualityBadge } from "../app/comp
 import { withComputedTotalPower } from "../app/lib/power-series";
 import type { Run, Sample } from "../app/lib/types";
 import { InferenceRequestTimeline } from "./inference-request-timeline";
+import { DatasetCard, iidSplit, oodSplit, SPLIT_VERSION } from "./dataset-card";
 import { loadCatalog, loadRun, requestTimelineCsv, samplesCsv, type InferenceRequestTimelinePoint, type PublicRun, type PublicRunDetail } from "./public-data";
 
 const REPOSITORY_URL = "https://github.com/eve123xy/AI-power-trace-explorer";
+const COLLECTION_URL = "https://anonymous.4open.science/r/data-collection-0866/README.md";
 
 function isSynthetic(run: Pick<Run, "source_family" | "quality_status">) {
   return run.source_family === "Synthetic showcase" || run.quality_status === "DEMO_SYNTHETIC";
@@ -32,6 +34,8 @@ function Header() {
         </a>
         <nav className="header-actions">
           <span className="static-demo-badge"><i /> Public reference &amp; demo data</span>
+          <a className="button button-ghost" href={COLLECTION_URL} target="_blank" rel="noreferrer" title="Scripts used to collect these traces">Collection code ↗</a>
+          <a className="button button-ghost" href="#/dataset">Dataset card</a>
           <a className="button button-ghost" href="#/data-guide">Data guide</a>
           <a className="button button-ghost" href="#/about">ⓘ About</a>
           <a className="button button-secondary" href={REPOSITORY_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
@@ -45,7 +49,7 @@ function PublicDataNotice() {
   return (
     <div className="demo-notice">
       <span>Public reference data</span>
-      <p>Reviewed public traces are research-ready; separately labeled synthetic showcases demonstrate complete training and inference telemetry. Private HPC files remain outside this deployment.</p>
+      <p>Reviewed public traces are research-ready; separately labeled synthetic showcases demonstrate complete training and inference telemetry. Private HPC files remain outside this deployment. To collect new traces with the same pipeline (Slurm training harness and vLLM/DCGM inference campaign), use the <a href={COLLECTION_URL} target="_blank" rel="noreferrer">data-collection code</a>.</p>
     </div>
   );
 }
@@ -240,7 +244,7 @@ function Home({ catalog }: { catalog: PublicRun[] }) {
           <div><span>Workload types</span><strong>{publishedWorkloads.length}</strong><small>{publishedWorkloads.join(" · ")}</small></div>
         </section>
         <section className="catalog-card">
-          <div className="table-toolbar"><div><h2>Trace catalog</h2><p>{runs.length} public traces shown</p></div><div className="legend-inline"><QualityBadge status={inferenceView ? "DEMO_SYNTHETIC" : "PASS_MAIN"} /></div></div>
+          <div className="table-toolbar"><div><h2>Trace catalog</h2><p>{runs.length} public traces shown</p></div><div className="legend-inline"><QualityBadge status={runs.some(isSynthetic) ? "DEMO_SYNTHETIC" : "PASS_MAIN"} /></div></div>
           <div className="table-scroll">
             <table className="trace-table">
               {inferenceView ? <>
@@ -348,7 +352,7 @@ function Detail({ detail }: { detail: PublicRunDetail }) {
   return <main className="detail-main static-detail">
     <PublicDataNotice />
     <div className="detail-breadcrumb"><a href="#/">Trace Catalog</a><span>/</span><span>{run.run_id}</span></div>
-    <section className="run-heading"><div><p className="eyebrow">{synthetic ? "Synthetic showcase trace" : "Public trace detail"}</p><h1>Run: {run.run_id}</h1><div className="run-badges">{[workloadLabel(run), run.gpu_type, modelLabel(run), run.method, `Seq ${run.sequence_length}`, run.source_family].map((badge) => <span key={badge}>{badge}</span>)}<QualityBadge status={run.quality_status} /></div></div><div className="heading-actions">{inference && timelineCsv ? <button className="button button-secondary" onClick={() => downloadText(`${run.run_id}_request_timeline.csv`, timelineCsv, "text/csv")}>↓ Request Timeline</button> : null}<a className="button button-secondary" href={`#/runs/${run.run_id}/data`}>▤ View Telemetry Data</a><button className="button button-primary" onClick={() => downloadText(`${run.run_id}.csv`, samplesCsv(detail), "text/csv")}>↓ Download CSV</button></div></section>
+    <section className="run-heading"><div><p className="eyebrow">{synthetic ? "Synthetic showcase trace" : "Public trace detail"}</p><h1>Run: {run.run_id}</h1><div className="run-badges">{[workloadLabel(run), run.gpu_type, modelLabel(run), run.method, `Seq ${run.sequence_length}`, run.source_family].map((badge) => <span key={badge}>{badge}</span>)}<span title={`Fixed splits ${SPLIT_VERSION}`}>Split {iidSplit(run)} · OOD {oodSplit(run)}</span><QualityBadge status={run.quality_status} /></div></div><div className="heading-actions">{inference && timelineCsv ? <button className="button button-secondary" onClick={() => downloadText(`${run.run_id}_request_timeline.csv`, timelineCsv, "text/csv")}>↓ Request Timeline</button> : null}<a className="button button-secondary" href={`#/runs/${run.run_id}/data`}>▤ View Telemetry Data</a><button className="button button-primary" onClick={() => downloadText(`${run.run_id}.csv`, samplesCsv(detail), "text/csv")}>↓ Download CSV</button></div></section>
     <div className="detail-grid">
       <div className="detail-content">
         <section className="plot-card static-plot-card">
@@ -473,6 +477,7 @@ export function StaticDemoApp() {
   else if (route === "/" || route === "") page = <Home catalog={catalog} />;
   else if (route === "/about") page = <About />;
   else if (route === "/data-guide") page = <DataGuide />;
+  else if (route === "/dataset") page = <DatasetCard catalog={catalog} />;
   else {
     const dataMatch = route.match(/^\/runs\/([^/]+)\/data$/);
     const runMatch = route.match(/^\/runs\/([^/]+)$/);
@@ -480,5 +485,5 @@ export function StaticDemoApp() {
     else if (runMatch) page = <RunRoute catalog={catalog} runId={decodeURIComponent(runMatch[1])} rawData={false} />;
     else page = <NotFound />;
   }
-  return <div className="app-frame static-app"><Header />{page}<footer className="static-footer">LLM Power Trace Explorer · Public reference &amp; demo data · <a href={REPOSITORY_URL}>Source on GitHub</a></footer></div>;
+  return <div className="app-frame static-app"><Header />{page}<footer className="static-footer">LLM Power Trace Explorer · Public reference &amp; demo data · <a href={REPOSITORY_URL}>Source on GitHub</a> · <a href={COLLECTION_URL}>Data-collection code</a> · Data <a href={`${REPOSITORY_URL}/blob/main/LICENSE-DATA`}>CC BY 4.0</a> · Code <a href={`${REPOSITORY_URL}/blob/main/LICENSE`}>MIT</a></footer></div>;
 }

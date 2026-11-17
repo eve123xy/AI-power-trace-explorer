@@ -10,10 +10,10 @@ if (!sourceDir || !outDir) {
   console.error("usage: node scripts/bundle_anonymous_public_data.mjs <sourceDir> <outDir>");
   process.exit(1);
 }
-const ID_FIELDS = ["run_json_file_id", "raw_csv_file_id", "metadata_json_file_id", "request_timeline_file_id"];
+const ID_FIELDS = ["run_json_file_id", "raw_csv_file_id", "metadata_json_file_id", "request_timeline_file_id", "display_bundle_file_id", "display_bundle_entry"];
 const scrub = (run, key) => {
   const out = { ...run };
-  for (const f of ID_FIELDS) out[f] = null;
+  for (const f of ID_FIELDS) delete out[f];
   out.run_json_file_id = key;
   for (const f of ["trace_path", "meta_path"]) if (typeof out[f] === "string") out[f] = out[f].replace(/^Google Drive \/ /, "");
   if (out.storage && typeof out.storage === "object") out.storage = { ...out.storage, provider: "static-bundle" };
