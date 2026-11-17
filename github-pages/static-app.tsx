@@ -6,7 +6,7 @@ import type { Run, Sample } from "../app/lib/types";
 import { InferenceRequestTimeline } from "./inference-request-timeline";
 import { loadCatalog, loadRun, requestTimelineCsv, samplesCsv, type InferenceRequestTimelinePoint, type PublicRun, type PublicRunDetail } from "./public-data";
 
-const REPOSITORY_URL = "https://github.com/eve123xy/training-power-trace-explorer-anonymous";
+const REPOSITORY_URL = "https://github.com/eve123xy/AI-power-trace-explorer";
 
 function isSynthetic(run: Pick<Run, "source_family" | "quality_status">) {
   return run.source_family === "Synthetic showcase" || run.quality_status === "DEMO_SYNTHETIC";
